@@ -127,7 +127,7 @@ class AuthService:
         return self.create_token(user)
 
     async def get_user_from_token(self, token: str) -> User:
-        """Get a user from a JWT token.
+        """Get a user from a JWT token with issuer and audience validation.
 
         Args:
             token: The JWT token string.
@@ -136,7 +136,8 @@ class AuthService:
             The user associated with the token.
 
         Raises:
-            TokenValidationError: If the token is invalid or user not found.
+            TokenValidationError: If the token is invalid,
+                has wrong issuer/audience, or user not found.
 
         """
         try:
@@ -144,11 +145,22 @@ class AuthService:
                 token,
                 settings.jwt_secret_key.get_secret_value(),
                 algorithms=[settings.jwt_algorithm],
+                issuer=settings.jwt_issuer,
+                audience=settings.jwt_audience,
             )
             email: str | None = payload.get("sub", None)
             if email is None:
                 raise TokenValidationError("Token missing subject (email)")
         except JWTError as e:
+            error_msg = str(e)
+            if "issuer" in error_msg.lower():
+                raise TokenValidationError(
+                    f"Token issuer validation failed: {e!s}",
+                ) from e
+            if "audience" in error_msg.lower():
+                raise TokenValidationError(
+                    f"Token audience validation failed: {e!s}",
+                ) from e
             raise TokenValidationError(f"Invalid token: {e!s}") from e
 
         user = await self.user_service.get_user_by_email(email)

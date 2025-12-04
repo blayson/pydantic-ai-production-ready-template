@@ -48,13 +48,30 @@ def create_access_token(
     data: dict,
     expires_delta: timedelta | None = None,
 ) -> str:
-    """Create a JWT access token."""
+    """Create a JWT access token with issuer and audience claims.
+
+    Args:
+        data: The data to encode in the token
+            (e.g., {"sub": "user@example.com"}).
+        expires_delta: Optional expiration time delta.
+            If None, uses default from settings.
+
+    Returns:
+        The encoded JWT token string.
+
+    """
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.now(UTC) + expires_delta
     else:
         expire = datetime.now(UTC) + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
+    to_encode.update(
+        {
+            "exp": expire,
+            "iss": settings.jwt_issuer,
+            "aud": settings.jwt_audience,
+        },
+    )
     return jwt.encode(
         to_encode,
         settings.jwt_secret_key.get_secret_value(),

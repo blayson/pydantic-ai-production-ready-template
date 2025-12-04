@@ -293,7 +293,11 @@ async def test_get_user_from_token_missing_subject(
 
     # Create a token without 'sub' field
     token_without_sub = jwt.encode(
-        {"exp": 9999999999},  # Far future expiration
+        {
+            "exp": 9999999999,  # Far future expiration
+            "iss": settings.jwt_issuer,
+            "aud": settings.jwt_audience,
+        },
         # pylint: disable=no-member
         settings.jwt_secret_key.get_secret_value(),
         algorithm=settings.jwt_algorithm,
@@ -314,7 +318,12 @@ async def test_get_user_from_token_user_not_found(
 
     # Create a token for a non-existent user
     token_for_nonexistent = jwt.encode(
-        {"sub": "nonexistent@example.com", "exp": 9999999999},
+        {
+            "sub": "nonexistent@example.com",
+            "exp": 9999999999,
+            "iss": settings.jwt_issuer,
+            "aud": settings.jwt_audience,
+        },
         # pylint: disable=no-member
         settings.jwt_secret_key.get_secret_value(),
         algorithm=settings.jwt_algorithm,
@@ -339,6 +348,8 @@ async def test_get_user_from_token_expired_token(
             "sub": "test@example.com",
             # Expired 1 hour ago
             "exp": datetime.now(UTC) - timedelta(hours=1),
+            "iss": settings.jwt_issuer,
+            "aud": settings.jwt_audience,
         },
         # pylint: disable=no-member
         settings.jwt_secret_key.get_secret_value(),
@@ -401,6 +412,8 @@ async def test_validate_token_expired_token(db_session: AsyncSession) -> None:
         {
             "sub": "test@example.com",
             "exp": datetime.now(UTC) - timedelta(hours=1),
+            "iss": settings.jwt_issuer,
+            "aud": settings.jwt_audience,
         },
         # pylint: disable=no-member
         settings.jwt_secret_key.get_secret_value(),
@@ -420,7 +433,12 @@ async def test_validate_token_user_not_found(db_session: AsyncSession) -> None:
 
     # Create a token for non-existent user
     token_for_nonexistent = jwt.encode(
-        {"sub": "nonexistent@example.com", "exp": 9999999999},
+        {
+            "sub": "nonexistent@example.com",
+            "exp": 9999999999,
+            "iss": settings.jwt_issuer,
+            "aud": settings.jwt_audience,
+        },
         # pylint: disable=no-member
         settings.jwt_secret_key.get_secret_value(),
         algorithm=settings.jwt_algorithm,
@@ -430,3 +448,138 @@ async def test_validate_token_user_not_found(db_session: AsyncSession) -> None:
 
     assert is_valid is False
     assert user is None
+
+
+@pytest.mark.asyncio
+async def test_get_user_from_token_wrong_issuer(
+    db_session: AsyncSession,
+) -> None:
+    """Test getting user from token with wrong issuer fails."""
+    auth_service = AuthService(db_session)
+
+    # Create a token with wrong issuer
+    token_with_wrong_issuer = jwt.encode(
+        {
+            "sub": "test@example.com",
+            "exp": 9999999999,
+            "iss": "wrong-issuer",
+            "aud": settings.jwt_audience,
+        },
+        # pylint: disable=no-member
+        settings.jwt_secret_key.get_secret_value(),
+        algorithm=settings.jwt_algorithm,
+    )
+
+    with pytest.raises(TokenValidationError) as exc_info:
+        await auth_service.get_user_from_token(token_with_wrong_issuer)
+
+    assert "issuer" in str(exc_info.value).lower()
+
+
+@pytest.mark.asyncio
+async def test_get_user_from_token_wrong_audience(
+    db_session: AsyncSession,
+) -> None:
+    """Test getting user from token with wrong audience fails."""
+    auth_service = AuthService(db_session)
+
+    # Create a token with wrong audience
+    token_with_wrong_audience = jwt.encode(
+        {
+            "sub": "test@example.com",
+            "exp": 9999999999,
+            "iss": settings.jwt_issuer,
+            "aud": "wrong-audience",
+        },
+        # pylint: disable=no-member
+        settings.jwt_secret_key.get_secret_value(),
+        algorithm=settings.jwt_algorithm,
+    )
+
+    with pytest.raises(TokenValidationError) as exc_info:
+        await auth_service.get_user_from_token(token_with_wrong_audience)
+
+    assert "audience" in str(exc_info.value).lower()
+
+
+@pytest.mark.asyncio
+async def test_get_user_from_token_missing_issuer(
+    db_session: AsyncSession,
+) -> None:
+    """Test getting user from token without issuer fails."""
+    auth_service = AuthService(db_session)
+
+    # Create a token without issuer
+    token_without_issuer = jwt.encode(
+        {
+            "sub": "test@example.com",
+            "exp": 9999999999,
+            "aud": settings.jwt_audience,
+        },
+        # pylint: disable=no-member
+        settings.jwt_secret_key.get_secret_value(),
+        algorithm=settings.jwt_algorithm,
+    )
+
+    with pytest.raises(TokenValidationError) as exc_info:
+        await auth_service.get_user_from_token(token_without_issuer)
+
+    assert "issuer" in str(exc_info.value).lower()
+
+
+@pytest.mark.asyncio
+async def test_get_user_from_token_missing_audience(
+    db_session: AsyncSession,
+) -> None:
+    """Test getting user from token without audience fails."""
+    auth_service = AuthService(db_session)
+
+    # Create a token without audience
+    token_without_audience = jwt.encode(
+        {
+            "sub": "test@example.com",
+            "exp": 9999999999,
+            "iss": settings.jwt_issuer,
+        },
+        # pylint: disable=no-member
+        settings.jwt_secret_key.get_secret_value(),
+        algorithm=settings.jwt_algorithm,
+    )
+
+    with pytest.raises(TokenValidationError) as exc_info:
+        await auth_service.get_user_from_token(token_without_audience)
+
+    assert "audience" in str(exc_info.value).lower()
+
+
+@pytest.mark.asyncio
+async def test_create_token_includes_issuer_audience(
+    db_session: AsyncSession,
+) -> None:
+    """Test that created tokens include issuer and audience claims."""
+    auth_service = AuthService(db_session)
+
+    user = User(
+        name="Test User",
+        email="test@example.com",
+        hashed_password=hash_password("SecurePass123"),
+    )
+    db_session.add(user)
+    await db_session.commit()
+    await db_session.refresh(user)
+
+    token = auth_service.create_token(user)
+
+    # Verify token can be decoded and contains issuer/audience
+    payload = jwt.decode(
+        token.access_token,
+        # pylint: disable=no-member
+        settings.jwt_secret_key.get_secret_value(),
+        algorithms=[settings.jwt_algorithm],
+        issuer=settings.jwt_issuer,
+        audience=settings.jwt_audience,
+    )
+    assert payload["sub"] == user.email
+    assert payload["iss"] == settings.jwt_issuer
+    assert payload["aud"] == settings.jwt_audience
+    assert "exp" in payload

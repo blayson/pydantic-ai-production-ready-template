@@ -89,6 +89,14 @@ class Settings(BaseSettings):
         default_factory=lambda: SecretStr(secrets.token_hex(32)),
     )
     jwt_algorithm: str = Field(default="HS256")
+    jwt_issuer: str = Field(
+        default="pydantic-ai-production-ready-template",
+        description="JWT issuer claim (iss) - identifies who issued the token",
+    )
+    jwt_audience: str = Field(
+        default="pydantic-ai-production-ready-template",
+        description=("JWT audience claim (aud) - identifies the intended recipient"),
+    )
 
     litellm_base_url: HttpUrl = Field(default=HttpUrl("http://localhost:4000"))
     litellm_api_key: SecretStr = Field(default=SecretStr(""))
