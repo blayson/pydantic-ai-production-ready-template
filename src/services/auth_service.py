@@ -147,17 +147,23 @@ class AuthService:
                 algorithms=[settings.jwt_algorithm],
                 issuer=settings.jwt_issuer,
                 audience=settings.jwt_audience,
+                options={"verify_aud": True},
             )
             email: str | None = payload.get("sub", None)
             if email is None:
                 raise TokenValidationError("Token missing subject (email)")
+            if payload.get("aud") != settings.jwt_audience:
+                raise TokenValidationError(
+                    "Token audience validation failed: "
+                    "audience claim missing or invalid",
+                )
         except JWTError as e:
             error_msg = str(e)
             if "issuer" in error_msg.lower():
                 raise TokenValidationError(
                     f"Token issuer validation failed: {e!s}",
                 ) from e
-            if "audience" in error_msg.lower():
+            if "audience" in error_msg.lower() or "aud" in error_msg.lower():
                 raise TokenValidationError(
                     f"Token audience validation failed: {e!s}",
                 ) from e

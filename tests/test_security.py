@@ -129,6 +129,8 @@ class TestCreateAccessToken:
             token,
             settings.jwt_secret_key.get_secret_value(),  # pylint: disable=no-member
             algorithms=[settings.jwt_algorithm],
+            issuer=settings.jwt_issuer,
+            audience=settings.jwt_audience,
         )
         exp = datetime.fromtimestamp(payload["exp"], tz=UTC)
         now = datetime.now(UTC)
@@ -149,6 +151,8 @@ class TestCreateAccessToken:
             token,
             settings.jwt_secret_key.get_secret_value(),  # pylint: disable=no-member
             algorithms=[settings.jwt_algorithm],
+            issuer=settings.jwt_issuer,
+            audience=settings.jwt_audience,
         )
         exp = datetime.fromtimestamp(payload["exp"], tz=UTC)
         now = datetime.now(UTC)
@@ -164,6 +168,8 @@ class TestCreateAccessToken:
             token,
             settings.jwt_secret_key.get_secret_value(),  # pylint: disable=no-member
             algorithms=[settings.jwt_algorithm],
+            issuer=settings.jwt_issuer,
+            audience=settings.jwt_audience,
         )
         assert payload["sub"] == "test@example.com"
         assert payload["user_id"] == "123"
@@ -178,6 +184,8 @@ class TestCreateAccessToken:
             token,
             settings.jwt_secret_key.get_secret_value(),  # pylint: disable=no-member
             algorithms=[settings.jwt_algorithm],
+            issuer=settings.jwt_issuer,
+            audience=settings.jwt_audience,
         )
         assert "exp" in payload
         assert isinstance(payload["exp"], int)
@@ -192,6 +200,8 @@ class TestCreateAccessToken:
             token,
             settings.jwt_secret_key.get_secret_value(),  # pylint: disable=no-member
             algorithms=[settings.jwt_algorithm],
+            issuer=settings.jwt_issuer,
+            audience=settings.jwt_audience,
         )
         assert payload["sub"] == "test@example.com"
 
@@ -227,6 +237,8 @@ class TestCreateAccessToken:
             token,
             settings.jwt_secret_key.get_secret_value(),  # pylint: disable=no-member
             algorithms=[settings.jwt_algorithm],
+            issuer=settings.jwt_issuer,
+            audience=settings.jwt_audience,
         )
         assert payload["sub"] == "test@example.com"
         assert payload["roles"] == ["admin", "user"]
@@ -247,4 +259,6 @@ class TestCreateAccessToken:
                 token,
                 settings.jwt_secret_key.get_secret_value(),  # pylint: disable=no-member
                 algorithms=[settings.jwt_algorithm],
+                issuer=settings.jwt_issuer,
+                audience=settings.jwt_audience,
             )

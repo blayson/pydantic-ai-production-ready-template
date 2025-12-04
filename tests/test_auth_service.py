@@ -153,6 +153,8 @@ async def test_create_token_success(db_session: AsyncSession) -> None:
         # pylint: disable=no-member
         settings.jwt_secret_key.get_secret_value(),
         algorithms=[settings.jwt_algorithm],
+        issuer=settings.jwt_issuer,
+        audience=settings.jwt_audience,
     )
     assert payload["sub"] == user.email
     assert "exp" in payload
@@ -183,6 +185,8 @@ async def test_create_token_with_custom_expires_delta(
         # pylint: disable=no-member
         settings.jwt_secret_key.get_secret_value(),
         algorithms=[settings.jwt_algorithm],
+        issuer=settings.jwt_issuer,
+        audience=settings.jwt_audience,
     )
     assert payload["sub"] == user.email
 
@@ -227,6 +231,8 @@ async def test_login_success(db_session: AsyncSession) -> None:
         # pylint: disable=no-member
         settings.jwt_secret_key.get_secret_value(),
         algorithms=[settings.jwt_algorithm],
+        issuer=settings.jwt_issuer,
+        audience=settings.jwt_audience,
     )
     assert payload["sub"] == user.email
 
